@@ -49,16 +49,26 @@ def test_strat(data, buy_condition, sell_condition, start_capital, commission, b
     for i, v in enumerate(data):
         if buy_options['rsi_period'] < i:
             buy_amount, buy_price = buy_condition(data, cap, i-buy_options['rsi_period'], buy_options) 
-            #print(buy_amount, buy_price, i-buy_options['rsi_period'])
-            shares += buy_amount
-            cap -= buy_price*buy_amount-commission
             if(buy_amount != 0 and buy_price != 0):
-                print("buying", buy_amount, buy_price, shares, cap)
+                print("buying", buy_amount, buy_price, shares, cap, buy_options['rsi'][i-buy_options['rsi_period']])
+                shares += buy_amount
+                cap -= buy_price*buy_amount-commission
+            if(shares != 0):
+                sell_options['avg_cost'] = (start_capital - cap)/shares
+            else:
+                sell_options['avg_cost'] = 0
+            sell_amount, sell_price = sell_condition(data, shares, i-buy_options['rsi_period'], sell_options)
+            if(sell_amount != 0 and sell_price != 0):
+                shares -= sell_amount
+                cap += sell_amount * sell_price-commission
+                print("avg cost: ", sell_options['avg_cost'])
+                print("selling", sell_amount, sell_price, shares, cap, buy_options['rsi'][i-buy_options['rsi_period']])
             
             #sell_amount, sell_price = sell_condition(data, shares, i, sell_options)
             #shares -= sell_amount
             #cap += buy_price*buy_amount-commission
         #print(shares, cap)
+    print(shares, cap)
 
 with open('obj/data.pickle', 'rb') as data:
     unserialized = pickle.load(data)
@@ -71,12 +81,24 @@ def access_close(data):
 
 
 def buy(data, cap, i, buy_options={}):
-    #print("i:", i)
+    rsi = buy_options['rsi']
     if rsi[i] < 25 and rsi[i-1] < 25 and rsi [i-2] < 25:
         return int(cap*0.1/data[i]['close']), data[i]['close']
     else:
         return 0, 0
 
+def sell(data, shares, i, sell_options):
+    rsi = sell_options['rsi']
+    avg_cost = sell_options['avg_cost']
+    if data[i]['open'] > avg_cost*1.1:
+        return shares, data[i]['open']
+    else:
+        return 0, 0
+    #if rsi[i] > 75 and rsi[i-1] > 75 and rsi[i-2] > 75:
+        #return int(shares), data[i]['close']
+    #else:
+        #return 0, 0
+    #pass
 
 rsi = calculate_rsi(unserialized['candles'], access_open, access_close, 14)
 
@@ -86,6 +108,6 @@ buy_options = {'rsi': rsi, 'rsi_period': 14}
 sell_options = {'rsi': rsi, 'rsi_period': 14}
 
 #def test_strat(data, buy_condition, sell_condition, start_capital, commission, buy_options, sell_options):
-test_strat(unserialized['candles'], buy, buy, 5000, 5, buy_options, sell_options)
+test_strat(unserialized['candles'], buy, sell, 5000, 5, buy_options, sell_options)
 
 #print(buy(unserialized['candles'], 5000, 1, buy_options))

@@ -48,6 +48,7 @@ def test_strat(data, buy_condition, sell_condition, start_capital, commission, b
     cap = start_capital
     for i, v in enumerate(data):
         if buy_options['rsi_period'] < i:
+            print(i)
             buy_amount, buy_price = buy_condition(data, cap, i-buy_options['rsi_period'], buy_options) 
             if(buy_amount != 0 and buy_price != 0):
                 print("buying", buy_amount, buy_price, shares, cap, buy_options['rsi'][i-buy_options['rsi_period']])
@@ -61,7 +62,7 @@ def test_strat(data, buy_condition, sell_condition, start_capital, commission, b
             if(sell_amount != 0 and sell_price != 0):
                 shares -= sell_amount
                 cap += sell_amount * sell_price-commission
-                print("avg cost: ", sell_options['avg_cost'])
+                print("avg cost: ", sell_options['avg_cost'], i)
                 print("selling", sell_amount, sell_price, shares, cap, buy_options['rsi'][i-buy_options['rsi_period']])
             
             #sell_amount, sell_price = sell_condition(data, shares, i, sell_options)
@@ -82,7 +83,7 @@ def access_close(data):
 
 def buy(data, cap, i, buy_options={}):
     rsi = buy_options['rsi']
-    if rsi[i] < 25 and rsi[i-1] < 25 and rsi [i-2] < 25:
+    if rsi[i] < 30 and rsi[i-1] < 30:
         return int(cap*0.1/data[i]['close']), data[i]['close']
     else:
         return 0, 0
@@ -90,7 +91,7 @@ def buy(data, cap, i, buy_options={}):
 def sell(data, shares, i, sell_options):
     rsi = sell_options['rsi']
     avg_cost = sell_options['avg_cost']
-    if data[i]['open'] > avg_cost*1.1:
+    if data[i]['open'] > avg_cost*1.15:
         return shares, data[i]['open']
     else:
         return 0, 0
